@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f4efe9" />
+  <title>Luv's Memories — Innovation Journal</title>
+  <style>
+    :root {
+      --bg: #f7f3ef;
+      --bg-2: #eee6df;
+      --text: #171513;
+      --muted: #786f69;
+      --line: rgba(23, 21, 19, .085);
+      --shadow: 0 28px 90px rgba(72,49,31,.13);
+      --shadow-soft: 0 16px 42px rgba(72,49,31,.095);
+      --spring: cubic-bezier(.16,1,.3,1);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 16% 4%, rgba(255,255,255,.96), transparent 28%),
+        radial-gradient(circle at 84% 12%, rgba(229,201,180,.24), transparent 27%),
+        linear-gradient(180deg, var(--bg), var(--bg-2));
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -3;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(255,255,255,.22), transparent 24%, transparent 76%, rgba(255,255,255,.32));
+    }
+
+    button { font: inherit; }
+    img { max-width: 100%; display: block; }
+
+    .ambient {
+      position: fixed;
+      width: 430px;
+      height: 430px;
+      border-radius: 50%;
+      filter: blur(78px);
+      opacity: .13;
+      pointer-events: none;
+      z-index: -2;
+    }
+    .ambient.a { background:#efc9af; left:-150px; top:12vh; }
+    .ambient.b { background:#c9d8e7; right:-145px; bottom:6vh; }
+
+    /* Opening screen */
+    .gate {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: grid;
+      place-items: center;
+      padding: 22px;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255,255,255,.46), transparent 36%),
+        linear-gradient(180deg, rgba(250,246,242,.985), rgba(240,232,225,.985));
+      transition: opacity .86s ease, visibility .86s ease;
+    }
+    body.ready .gate { opacity:0; visibility:hidden; }
+
+    .gate-card {
+      width: min(930px, calc(100vw - 32px));
+      padding: 18px;
+      border-radius: 38px;
+      border: 1px solid rgba(20,18,16,.06);
+      background: rgba(255,255,255,.54);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 30px 100px rgba(73,46,24,.12);
+      text-align: center;
+      transition: transform .9s var(--spring), opacity .55s ease, filter .55s ease;
+    }
+    .gate-visual {
+      overflow: hidden;
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      transition: transform .9s var(--spring);
+    }
+    .gate-visual img { width:100%; aspect-ratio:16/9; object-fit:cover; }
+    .gate-actions { display:grid; justify-items:center; gap:8px; padding:17px 0 4px; transition:opacity .26s ease, transform .26s ease; }
+    .enter-btn {
+      border:0; border-radius:999px; padding:14px 22px; color:#fff; background:#111;
+      cursor:pointer; font-weight:750; box-shadow:0 14px 32px rgba(0,0,0,.16);
+      transition:transform .2s ease, box-shadow .2s ease;
+    }
+    .enter-btn:hover { transform:translateY(-2px); box-shadow:0 18px 36px rgba(0,0,0,.19); }
+    .gate-actions p { margin:0; font-size:13px; color:var(--muted); }
+    .gate.launching .gate-card { transform:scale(1.14) translateY(4vh); opacity:.05; filter:blur(8px); }
+    .gate.launching .gate-visual { transform:scale(1.16); }
+    .gate.launching .gate-actions { opacity:0; transform:translateY(12px); }
+
+    .wash {
+      position:fixed; inset:-12%; z-index:95; pointer-events:none; opacity:0; transform:scale(.7); filter:blur(10px);
+      background:radial-gradient(circle at 50% 46%, rgba(255,255,255,.98) 0 10%, rgba(255,250,246,.88) 21%, rgba(231,216,205,.52) 38%, transparent 65%);
+      transition:opacity .42s ease, transform .72s var(--spring);
+    }
+    .wash.active { opacity:1; transform:scale(1.45); }
+
+    /* Main hero */
+    .shell {
+      width:min(1240px, calc(100vw - 28px));
+      margin:0 auto;
+      padding:24px 0 48px;
+      opacity:0;
+      transform:translateY(18px);
+      transition:opacity .75s ease .12s, transform .85s var(--spring) .12s;
+    }
+    body.ready .shell { opacity:1; transform:none; }
+
+    .hero { min-height:calc(100vh - 40px); display:grid; align-content:start; gap:22px; padding-top:8px; }
+    .hero-copy { text-align:center; max-width:900px; margin:0 auto; padding-top:10px; transition: transform .7s var(--spring), opacity .4s ease; }
+    .hero-copy h1 {
+      margin:0; font-family:Georgia, "Times New Roman", serif; font-weight:500;
+      font-size:clamp(54px,8.5vw,106px); line-height:.95; letter-spacing:-.052em;
+    }
+    .hero-copy p {
+      margin:15px auto 0; max-width:720px; color:var(--muted); font-size:clamp(14px,1.8vw,17px); line-height:1.65;
+      transition:opacity .35s ease, transform .5s var(--spring);
+    }
+
+    .stage { position:relative; width:100%; min-height:680px; display:grid; place-items:start center; isolation:isolate; }
+    .duo-screen, .notes-screen { grid-area:1/1; width:100%; }
+
+    .duo-screen {
+      display:grid; justify-items:center; gap:16px; opacity:1; transform:scale(1); filter:blur(0);
+      transition:opacity .48s ease, transform .82s var(--spring), filter .55s ease; z-index:2;
+    }
+    .hero-visual {
+      width:min(1080px,100%); overflow:hidden; border-radius:32px; border:1px solid rgba(20,18,16,.06);
+      background:rgba(255,255,255,.66); box-shadow:0 30px 100px rgba(72,49,31,.15);
+    }
+    .hero-visual img { width:100%; aspect-ratio:16/9; object-fit:cover; }
+
+    .zoom-pill, .back-pill {
+      border:1px solid rgba(20,18,16,.07); background:rgba(255,255,255,.72); color:var(--text); border-radius:999px;
+      padding:12px 18px; cursor:pointer; display:inline-flex; gap:9px; align-items:center; backdrop-filter:blur(16px);
+      box-shadow:var(--shadow-soft); transition:transform .2s ease, background .2s ease, opacity .3s ease;
+    }
+    .zoom-pill:hover, .back-pill:hover { transform:translateY(-2px); background:rgba(255,255,255,.9); }
+
+    /* Sticky-note destination */
+    .notes-screen {
+      z-index:1; opacity:0; pointer-events:none; transform:translateY(32px) scale(.965); filter:blur(8px);
+      transition:opacity .58s ease .10s, transform .88s var(--spring) .08s, filter .58s ease .10s;
+      padding:8px 8px 22px;
+    }
+    .sticky-grid {
+      width:min(1120px,100%); margin:0 auto; display:grid; grid-template-columns:repeat(5,minmax(0,1fr));
+      gap:18px; perspective:1200px;
+    }
+
+    .sticky {
+      --note:#dcecff; --note-hi:#f4f9ff; --ink:#172235; --accent-note:#4f7ea8;
+      min-height:236px; position:relative; border:1px solid rgba(20,18,16,.065); border-radius:25px 25px 32px 25px;
+      padding:17px 17px 18px; color:var(--ink); cursor:pointer; text-align:left; overflow:hidden;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.50), transparent 34%),
+        linear-gradient(160deg, var(--note-hi), var(--note));
+      box-shadow:0 16px 30px rgba(79,57,39,.10), inset 0 1px 0 rgba(255,255,255,.62);
+      transform:translateY(26px) scale(.92) rotate(var(--r,0deg)); opacity:0; filter:blur(4px);
+      transition:
+        opacity .46s ease calc(.16s + var(--i) * 48ms),
+        transform .72s var(--spring) calc(.16s + var(--i) * 48ms),
+        filter .46s ease calc(.16s + var(--i) * 48ms),
+        box-shadow .25s ease;
+    }
+    .sticky::before {
+      content:""; position:absolute; inset:0 0 auto; height:47%;
+      background:linear-gradient(180deg, rgba(255,255,255,.30), transparent); pointer-events:none;
+    }
+    .sticky::after {
+      content:""; position:absolute; right:0; bottom:0; width:38px; height:38px;
+      background:linear-gradient(135deg, rgba(255,255,255,0) 49%, rgba(255,255,255,.66) 50%);
+      filter:drop-shadow(-3px -3px 4px rgba(80,60,40,.05)); border-bottom-right-radius:23px; pointer-events:none;
+    }
+    .sticky:hover {
+      transform:translateY(-7px) scale(1.025) rotate(0deg) !important;
+      box-shadow:0 24px 42px rgba(79,57,39,.16), inset 0 1px 0 rgba(255,255,255,.74); z-index:4;
+    }
+
+    .note-top { position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:18px; }
+    .note-number {
+      display:inline-flex; align-items:center; gap:7px; font-size:10px; font-weight:850; letter-spacing:.12em; text-transform:uppercase; opacity:.72;
+    }
+    .note-symbol {
+      width:27px; height:27px; display:grid; place-items:center; border-radius:9px; background:rgba(255,255,255,.36);
+      border:1px solid rgba(20,18,16,.05); font-size:13px; font-weight:800;
+    }
+    .note-date {
+      display:inline-flex; align-items:center; justify-content:center; min-height:27px; padding:0 9px; border-radius:9px;
+      background:rgba(255,255,255,.32); border:1px solid rgba(20,18,16,.05);
+      font-size:10px; font-weight:760; letter-spacing:.01em; white-space:nowrap; opacity:.72;
+    }
+    .sticky h3 {
+      position:relative; z-index:2; margin:0 0 9px; font-size:18px; letter-spacing:-.03em; line-height:1.09; font-weight:780;
+    }
+    .sticky .signal-copy {
+      position:relative; z-index:2; display:block; color:color-mix(in srgb, var(--ink) 66%, transparent); font-size:11.5px; line-height:1.42;
+      display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
+    }
+    .idea-pill {
+      position:absolute; left:16px; right:16px; bottom:15px; z-index:3; display:flex; align-items:center; gap:7px;
+      border-top:1px solid color-mix(in srgb, var(--ink) 12%, transparent); padding-top:10px;
+      font-size:10px; font-weight:780; letter-spacing:.015em; color:color-mix(in srgb, var(--ink) 66%, transparent);
+    }
+    .idea-pill::before { content:"✦"; color:var(--accent-note); font-size:12px; }
+
+    body.entries-mode .duo-screen { opacity:0; pointer-events:none; transform:scale(1.20) translateY(20px); filter:blur(15px) saturate(.88); }
+    body.entries-mode .notes-screen { opacity:1; pointer-events:auto; transform:none; filter:blur(0); z-index:3; }
+    body.entries-mode .sticky { opacity:1; filter:blur(0); transform:translateY(0) scale(1) rotate(var(--r,0deg)); }
+    body.entries-mode .hero-copy p { opacity:.62; transform:translateY(-3px); }
+
+    /* Entry drill-down */
+    .entry-overlay {
+      position:fixed; inset:0; z-index:120; display:grid; place-items:center; padding:20px;
+      background:rgba(16,15,14,.32); backdrop-filter:blur(15px) saturate(.93);
+      opacity:0; pointer-events:none; transition:opacity .30s ease;
+    }
+    .entry-overlay.open { opacity:1; pointer-events:auto; }
+
+    .entry-note {
+      --detail:#dcecff; --detail-hi:#f4f9ff; --detail-ink:#172235; --detail-accent:#4f7ea8;
+      width:min(920px,100%); max-height:calc(100vh - 40px); overflow:auto; position:relative;
+      border-radius:36px 36px 46px 36px; border:1px solid rgba(20,18,16,.07);
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.56), transparent 34%),
+        linear-gradient(160deg,var(--detail-hi),var(--detail));
+      color:var(--detail-ink); box-shadow:0 36px 120px rgba(0,0,0,.23), inset 0 1px 0 rgba(255,255,255,.66);
+      padding:clamp(28px,5vw,52px); transform:scale(.82) translateY(26px) rotate(-1deg); opacity:0;
+      transition:transform .58s var(--spring), opacity .30s ease;
+    }
+    .entry-overlay.open .entry-note { transform:none; opacity:1; }
+    .entry-note::after {
+      content:""; position:absolute; right:0; bottom:0; width:66px; height:66px;
+      background:linear-gradient(135deg, rgba(255,255,255,0) 49%, rgba(255,255,255,.64) 50%);
+      border-bottom-right-radius:42px; pointer-events:none;
+    }
+    .close-entry {
+      position:sticky; float:right; top:0; z-index:5; width:42px; height:42px; border-radius:50%;
+      border:1px solid rgba(20,18,16,.07); background:rgba(255,255,255,.44); backdrop-filter:blur(10px);
+      cursor:pointer; font-size:23px; color:var(--detail-ink);
+    }
+    .entry-kicker { font-size:11px; font-weight:850; letter-spacing:.14em; text-transform:uppercase; opacity:.60; }
+    .entry-note h2 {
+      margin:17px 0 12px; font-size:clamp(40px,6.4vw,66px); line-height:.96; letter-spacing:-.052em;
+      font-family:Georgia,serif; font-weight:500; max-width:760px;
+    }
+    .entry-meta { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 30px; }
+    .meta-chip {
+      padding:8px 11px; border-radius:999px; background:rgba(255,255,255,.35); border:1px solid rgba(20,18,16,.06);
+      font-size:11px; font-weight:700; color:color-mix(in srgb, var(--detail-ink) 65%, transparent);
+    }
+
+    .observation {
+      margin:0 0 24px; padding:22px 24px; border-radius:22px;
+      background:rgba(255,255,255,.30); border:1px solid rgba(20,18,16,.055);
+      font-family:Georgia,serif; font-size:clamp(20px,2.8vw,28px); line-height:1.35; letter-spacing:-.018em;
+    }
+    .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+    .detail-card {
+      padding:19px; border-radius:20px; background:rgba(255,255,255,.29); border:1px solid rgba(20,18,16,.055);
+      min-height:160px;
+    }
+    .detail-card .label, .idea-block .label, .hmw .label {
+      display:block; margin-bottom:9px; font-size:10px; font-weight:900; letter-spacing:.13em; text-transform:uppercase;
+      color:var(--detail-accent);
+    }
+    .detail-card p, .idea-block p { margin:0; font-size:14px; line-height:1.6; color:color-mix(in srgb, var(--detail-ink) 80%, transparent); }
+    .idea-block {
+      margin-top:14px; padding:22px; border-radius:22px; background:rgba(255,255,255,.43); border:1px solid rgba(20,18,16,.06);
+    }
+    .idea-block h3 { margin:0 0 9px; font-size:22px; line-height:1.08; letter-spacing:-.03em; }
+    .hmw {
+      margin-top:14px; padding:20px 22px; border-radius:22px; border:1px dashed color-mix(in srgb, var(--detail-accent) 40%, rgba(20,18,16,.08));
+      background:color-mix(in srgb, var(--detail-accent) 8%, transparent);
+    }
+    .hmw p { margin:0; font-family:Georgia,serif; font-size:18px; line-height:1.45; }
+
+    @media (max-width:980px) {
+      .stage { min-height:950px; }
+      .sticky-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+      .sticky { min-height:222px; }
+    }
+    @media (max-width:700px) {
+      .shell { width:min(100vw - 16px,1240px); padding-top:12px; }
+      .hero { min-height:auto; }
+      .hero-copy h1 { font-size:clamp(46px,13vw,72px); }
+      .hero-copy p { font-size:14px; }
+      .stage { min-height:1380px; }
+      .hero-visual, .gate-card { border-radius:26px; }
+      .gate-card { padding:13px; }
+      .sticky-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+      .sticky { min-height:228px; border-radius:20px 20px 27px 20px; padding:14px; }
+      .sticky h3 { font-size:16px; }
+      .sticky .signal-copy { font-size:11px; }
+      .idea-pill { left:14px; right:14px; bottom:14px; font-size:9.5px; }
+      .notes-toolbar { align-items:flex-start; }
+      .notes-label strong { font-size:25px; }
+      .back-pill { padding:10px 13px; font-size:12px; }
+      .detail-grid { grid-template-columns:1fr; }
+      .entry-note { padding:26px 20px 32px; border-radius:28px 28px 36px 28px; }
+    }
+
+    @media (prefers-reduced-motion:reduce) {
+      *, *::before, *::after { animation:none !important; transition-duration:.01ms !important; transition-delay:0ms !important; scroll-behavior:auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient a"></div>
+  <div class="ambient b"></div>
+  <div class="wash" id="wash" aria-hidden="true"></div>
+
+  <div class="gate" id="gate">
+    <div class="gate-card">
+      <div class="gate-visual">
+        <img src="hello-luvs-memories.png" alt="Hello, Luv's Memories iPhone Duo journal" />
+      </div>
+      <div class="gate-actions">
+        <button class="enter-btn" id="enterSite">Zoom into memories ↓</button>
+        <p>Enter the innovation journal.</p>
+      </div>
+    </div>
+  </div>
+
+  <main class="shell">
+    <section class="hero">
+      <div class="hero-copy">
+        <h1>Hello, Luv's Memories!</h1>
+        <p id="heroSubtitle">Innovation journal · tap on each to explore the thoughts</p>
+      </div>
+
+      <div class="stage">
+        <div class="notes-screen" id="notesScreen" aria-hidden="true">
+          <div class="sticky-grid" id="stickyGrid"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="entry-overlay" id="entryOverlay" role="dialog" aria-modal="true" aria-labelledby="entryTitle">
+    <article class="entry-note" id="entryNote">
+      <button class="close-entry" id="closeEntry" aria-label="Close entry">×</button>
+      <div class="entry-kicker" id="entryKicker"></div>
+      <h2 id="entryTitle"></h2>
+      <div class="entry-meta" id="entryMeta"></div>
+      <div class="observation" id="entryObservation"></div>
+      <div class="detail-grid">
+        <section class="detail-card">
+          <span class="label">Core friction</span>
+          <p id="entryFriction"></p>
+        </section>
+        <section class="detail-card">
+          <span class="label">Point of view</span>
+          <p id="entryPov"></p>
+        </section>
+      </div>
+      <section class="idea-block">
+        <span class="label">Idea</span>
+        <h3 id="entryIdeaTitle"></h3>
+        <p id="entryIdea"></p>
+      </section>
+      <section class="hmw">
+        <span class="label">How might we…</span>
+        <p id="entryHmw"></p>
+      </section>
+    </article>
+  </div>
+
+  <script>
+    const entries = [
+      {
+        title: 'Notes everywhere, answers nowhere',
+        date: '10 September 2026',
+        setting: 'Personal study and work',
+        type: 'Fragmentation',
+        symbol: '⌘',
+        observation: 'Managing notes becomes difficult when capturing, organizing and finding them all require separate manual effort.',
+        friction: 'The work is repeated twice: first to record the thought, then again to sort, label and retrieve it.',
+        pov: 'A busy learner needs a natural way to capture and retrieve notes because maintaining a perfect filing system takes attention away from the actual work.',
+        ideaTitle: 'A Conversational Second Brain',
+        idea: 'Connect ChatGPT with Notion so a person can record information conversationally while the system handles titles, categories, links and storage. Later, AI can search the stored knowledge and return the relevant detail with context.',
+        hmw: 'Make saving and finding knowledge feel as effortless as having a conversation?',
+        colors: ['#CFE4FF','#F1F7FF','#18314F','#4F7EA8']
+      },
+      {
+        title: 'A portable microclimate',
+        date: '11 September 2026',
+        setting: 'Hong Kong streets and outdoor journeys',
+        type: 'Persistent discomfort',
+        symbol: '☀',
+        observation: 'Hong Kong humidity turns short walks into repeated battles with sweat, sun and discomfort.',
+        friction: 'Staying comfortable outside currently requires several separate behaviours: finding shade, protecting the face, managing sweat and carrying a deodorant or fragrance.',
+        pov: 'A person travelling through humid Hong Kong needs discreet, hands-free protection from sun and sweat because carrying and repeatedly applying separate products is inconvenient.',
+        ideaTitle: 'The Microclimate Kit',
+        idea: 'A modular outdoor-wear system combining a discreet cooling cap with washable sweat-control clothing inserts, allowing people to choose only the parts they need instead of wearing one bulky device.',
+        hmw: 'Create a personal pocket of shade, airflow and freshness without making the wearer look unusual?',
+        colors: ['#FFD8B8','#FFF1E2','#4B2A18','#C77A3E']
+      },
+      {
+        title: 'The two-minute route nobody sees',
+        date: '12 September 2026',
+        setting: 'HKU MTR and campus access · around 9:00 AM',
+        type: 'Bottleneck',
+        symbol: '↗',
+        observation: 'At 9:00 AM, familiar routes from HKU MTR become crowded while a faster path remains overlooked.',
+        friction: 'Commuters make timing decisions without knowing which campus entrance is currently fastest, so the safest strategy becomes sacrificing sleep or accepting delay.',
+        pov: 'An HKU commuter needs a quick way to identify the least congested route because the most visible route is not always the fastest one.',
+        ideaTitle: 'Flow Finder HKU',
+        idea: 'A lightweight crowd-aware wayfinding system that distributes commuters across multiple campus entrances. Live red, amber and green route boards could show estimated walking and queue times without requiring a new app.',
+        hmw: 'Turn overlooked campus routes into visible shortcuts before commuters join the crowd?',
+        colors: ['#D4EFD4','#EFF9EF','#18371F','#5D9665']
+      },
+      {
+        title: 'Two doors into one internship',
+        date: '13 September 2026',
+        setting: 'Internship applications and AI-industry networking',
+        type: 'Volume versus relevance',
+        symbol: '◎',
+        observation: 'AI makes mass applications easier, but standing out still requires personalization and human relationships.',
+        friction: 'An internship seeker must apply broadly enough to create opportunities while still tailoring each CV, checking every answer and building genuine connections.',
+        pov: 'A student entering the AI industry needs a manageable way to combine personalized applications with networking because either strategy alone may not reliably lead to interviews.',
+        ideaTitle: 'The Human-in-the-Loop Career Copilot',
+        idea: 'One system manages a dual pipeline: applications create coverage while events create recognition. It tracks target companies, application status, relevant people, upcoming events and the next personal action without submitting or committing on the user’s behalf.',
+        hmw: 'Use AI to expand internship opportunities without making applications or networking feel automated and impersonal?',
+        colors: ['#DED4FF','#F3EFFF','#2D234B','#8069C4']
+      },
+      {
+        title: 'Same book, different doorway',
+        date: '14 September 2026',
+        setting: 'Personal reading · late-night routine',
+        type: 'Attention mismatch',
+        symbol: '◫',
+        observation: 'A valuable book can remain unread when the author’s style does not match the reader’s attention.',
+        friction: 'Reading requires both protected time and a format that holds attention. When either is missing, the habit breaks before the knowledge can become useful.',
+        pov: 'A curious but easily distracted reader needs a consistent reading moment and an adaptable explanation style because valuable ideas should not be inaccessible only because of difficult prose.',
+        ideaTitle: 'The Adaptive Reading Lens',
+        idea: 'A reading companion with three synchronized views: Original for the author’s wording, Adapted for an attention-friendly explanation and My Understanding for a short personal takeaway. The reader can move between them without losing the source.',
+        hmw: 'Adapt the doorway into a book without losing the author’s original room of ideas?',
+        colors: ['#FFE9A9','#FFF7D4','#463813','#C69823']
+      },
+      {
+        title: 'The workout hidden inside the day',
+        date: '15 September 2026',
+        setting: 'Work meetings, rest time and the gym',
+        type: 'Competing priorities',
+        symbol: '◌',
+        observation: 'Exercise becomes difficult when it must compete with work and rest for its own time slot.',
+        friction: 'Work, rest and movement are treated as competing activities. Choosing exercise appears to require giving up either productivity or recovery.',
+        pov: 'A time-poor professional needs movement to fit inside existing routines because a separate workout block is easy to postpone after a demanding day.',
+        ideaTitle: 'The Movement Overlay',
+        idea: 'Instead of asking where to find another hour, identify existing activities that can safely carry movement. Meetings become walking cues, streaming becomes a treadmill cue and arriving at the gym becomes a gateway to optional strength work.',
+        hmw: 'Make movement feel like part of work and rest rather than a third activity competing with both?',
+        colors: ['#C9E5FF','#EEF7FF','#17314A','#4E8BB8']
+      },
+      {
+        title: 'The computer should disappear',
+        date: '16 September 2026',
+        setting: 'Everyday laptop use for work and study',
+        type: 'Repeated interruption',
+        symbol: '⌨',
+        observation: 'A laptop becomes a barrier when battery anxiety and freezing interrupt work more than the task.',
+        friction: 'A tool meant to support work creates extra micro-decisions: whether to charge, restart, close applications, clear space or wait for the system to respond.',
+        pov: 'A busy laptop user needs a dependable device that stays responsive throughout the day because technical maintenance breaks concentration and reduces trust in the tool.',
+        ideaTitle: 'The Zero-Friction Workstation',
+        idea: 'Choose technology around a friction budget. A suitable laptop should minimize the daily cost of waiting, charging, troubleshooting and storage management so attention remains on the work.',
+        hmw: 'Design a laptop experience so reliable that the user stops thinking about the laptop itself?',
+        colors: ['#D9DCE1','#F2F3F5','#282A2F','#7C818A']
+      },
+      {
+        title: 'From loose strands to useful evidence',
+        date: '17 September 2026',
+        setting: 'Personal hair care · Hong Kong compared with Pakistan',
+        type: 'Uncertain cause',
+        symbol: '⌕',
+        observation: 'Hair shedding feels alarming when the cause is uncertain and every remedy becomes trial and error.',
+        friction: 'Hair changes can develop gradually while advice is fragmented across oils, shampoos, lifestyle changes, medicines and procedures. Trying everything together makes the result difficult to interpret.',
+        pov: 'A person noticing increased hair fall needs a calm way to document changes and obtain qualified guidance because uncertainty encourages random remedies and delayed assessment.',
+        ideaTitle: 'The Hair Signal Passport',
+        idea: 'A private tracking system that turns vague concern into a useful timeline: consistent monthly scalp photos, approximate shedding level, scalp symptoms, hair-care products, sleep, stress, diet changes, illness, medication changes and location or water changes. It prepares evidence for a clinician instead of attempting to diagnose the user.',
+        hmw: 'Replace anxious trial and error with a simple evidence trail that leads to the right kind of help?',
+        colors: ['#FFD4E1','#FFF0F5','#482437','#BE6D8A']
+      },
+      {
+        title: 'From AI noise to personal craft',
+        date: '18 September 2026',
+        setting: 'AI news, social media and creative projects',
+        type: 'Information overload',
+        symbol: '✦',
+        observation: 'AI evolves so quickly that staying current can replace the deeper work of creating something meaningful.',
+        friction: 'The AI ecosystem rewards speed and novelty, while high-quality work requires selection, context, iteration and taste. Trying to follow everything leaves too little time to master anything.',
+        pov: 'An AI-enabled creator needs a calm system for filtering updates and turning a few of them into real projects because awareness without application becomes noise.',
+        ideaTitle: 'The AI Signal-to-Craft Studio',
+        idea: 'A weekly practice that limits consumption and forces application: capture five updates, choose one, connect it to one real problem and build one small artifact. The goal is not to use the newest tool—it is to produce work that could not have come from a generic prompt alone.',
+        hmw: 'Turn the speed of AI progress into a steady creative practice instead of a permanent feeling of falling behind?',
+        colors: ['#E1D3FF','#F5EFFF','#31234E','#8063C2']
+      },
+      {
+        title: 'When making became easy, taste became scarce',
+        date: '19 September 2026',
+        setting: 'AI-generated posters, websites and visual content',
+        type: 'Content overload',
+        symbol: '◇',
+        observation: 'AI removed the technical barrier to design, but it did not automatically create taste, clarity or restraint.',
+        friction: 'AI can execute visual instructions, but many creators have not developed the judgment to decide what deserves emphasis, what should be removed and what a viewer can realistically understand at a glance.',
+        pov: 'A modern creator needs a strong visual diet and a repeatable editing method because fast production without taste creates more content but less communication.',
+        ideaTitle: 'The Taste Gym',
+        idea: 'A daily visual-training practice: save one excellent design, explain three reasons it works, rebuild its underlying principle with different content and finish by removing 30% of the first draft. AI becomes the production assistant; the human remains the editor and art director.',
+        hmw: 'Use AI to make design faster without allowing speed to replace taste, clarity and human judgment?',
+        colors: ['#FFD5B8','#FFF0E2','#4A2B1A','#C97D44']
+      }
+    ];
+
+    const rotations = ['-1.25deg','.9deg','-.55deg','1.05deg','-.75deg','.65deg','-1deg','.45deg','-.75deg','.85deg'];
+    const grid = document.getElementById('stickyGrid');
+    const body = document.body;
+    const notesScreen = document.getElementById('notesScreen');
+    const wash = document.getElementById('wash');
+    const overlay = document.getElementById('entryOverlay');
+    const entryNote = document.getElementById('entryNote');
+    const heroSubtitle = document.getElementById('heroSubtitle');
+
+    entries.forEach((entry, i) => {
+      const [base, hi, ink, accent] = entry.colors;
+      const card = document.createElement('button');
+      card.className = 'sticky';
+      card.style.setProperty('--i', i);
+      card.style.setProperty('--r', rotations[i]);
+      card.style.setProperty('--note', base);
+      card.style.setProperty('--note-hi', hi);
+      card.style.setProperty('--ink', ink);
+      card.style.setProperty('--accent-note', accent);
+      card.innerHTML = `
+        <div class="note-top">
+          <span class="note-number"><span class="note-symbol">${entry.symbol}</span> Signal ${String(i + 1).padStart(2,'0')}</span>
+          <span class="note-date">${entry.date.replace(' 2026','')}</span>
+        </div>
+        <h3>${entry.title}</h3>
+        <span class="signal-copy">${entry.observation}</span>
+        <span class="idea-pill">${entry.ideaTitle}</span>
+      `;
+      card.addEventListener('click', () => openEntry(i));
+      grid.appendChild(card);
+    });
+
+    function runWash() {
+      wash.classList.add('active');
+      setTimeout(() => wash.classList.remove('active'), 500);
+    }
+
+    function openEntry(index) {
+      const entry = entries[index];
+      const [base, hi, ink, accent] = entry.colors;
+      entryNote.style.setProperty('--detail', base);
+      entryNote.style.setProperty('--detail-hi', hi);
+      entryNote.style.setProperty('--detail-ink', ink);
+      entryNote.style.setProperty('--detail-accent', accent);
+
+      document.getElementById('entryKicker').textContent = `Innovation Journal · Signal ${String(index + 1).padStart(2,'0')}`;
+      document.getElementById('entryTitle').textContent = entry.title;
+      document.getElementById('entryMeta').innerHTML = `
+        <span class="meta-chip">${entry.date}</span>
+        <span class="meta-chip">${entry.setting}</span>
+        <span class="meta-chip">${entry.type}</span>
+      `;
+      document.getElementById('entryObservation').textContent = entry.observation;
+      document.getElementById('entryFriction').textContent = entry.friction;
+      document.getElementById('entryPov').textContent = entry.pov;
+      document.getElementById('entryIdeaTitle').textContent = entry.ideaTitle;
+      document.getElementById('entryIdea').textContent = entry.idea;
+      document.getElementById('entryHmw').textContent = entry.hmw;
+
+      overlay.classList.add('open');
+      body.style.overflow = 'hidden';
+      playNote();
+      setTimeout(() => document.getElementById('closeEntry').focus(), 220);
+    }
+
+    function closeEntry() {
+      overlay.classList.remove('open');
+      body.style.overflow = '';
+      playClose();
+    }
+
+    document.getElementById('closeEntry').addEventListener('click', closeEntry);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeEntry(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEntry(); });
+
+    let audioCtx;
+    function ctx() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      return audioCtx;
+    }
+    function tone(freq=260, duration=.11, gain=.017, type='sine') {
+      const c=ctx(), o=c.createOscillator(), g=c.createGain();
+      o.type=type; o.frequency.value=freq;
+      g.gain.setValueAtTime(gain,c.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001,c.currentTime+duration);
+      o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime+duration);
+    }
+    function noise(duration=.14,gain=.025,freq=1800) {
+      const c=ctx(), len=Math.floor(c.sampleRate*duration), b=c.createBuffer(1,len,c.sampleRate), d=b.getChannelData(0);
+      for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len);
+      const s=c.createBufferSource(), f=c.createBiquadFilter(), g=c.createGain();
+      s.buffer=b; f.type='lowpass'; f.frequency.value=freq; g.gain.value=gain;
+      s.connect(f).connect(g).connect(c.destination); s.start();
+    }
+    function playWhoosh(){ try { noise(.24,.032,2100); tone(180,.19,.012); } catch(e){} }
+    function playNote(){ try { tone(520,.07,.013); tone(690,.10,.009); } catch(e){} }
+    function playClose(){ try { tone(240,.07,.009); } catch(e){} }
+
+    const gate = document.getElementById('gate');
+    document.getElementById('enterSite').addEventListener('click', () => {
+      try { if (ctx().state === 'suspended') ctx().resume(); } catch(e){}
+      playWhoosh();
+      gate.classList.add('launching');
+      setTimeout(() => wash.classList.add('active'), 170);
+      setTimeout(() => { body.classList.add('ready','entries-mode'); notesScreen.setAttribute('aria-hidden','false'); }, 480);
+      setTimeout(() => wash.classList.remove('active'), 850);
+    });
+
+    const params = new URLSearchParams(location.search);
+    if (params.get('preview') === '1') { body.classList.add('ready','entries-mode'); notesScreen.setAttribute('aria-hidden','false'); }
+    if (params.get('entries') === '1') {
+      body.classList.add('ready','entries-mode');
+      notesScreen.setAttribute('aria-hidden','false');
+    }
+  </script>
+</body>
+</html>
