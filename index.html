@@ -398,9 +398,36 @@ document.addEventListener('DOMContentLoaded', async function() {
         btn.insertBefore(row, btn.lastElementChild);
       });
     }
-    mountStickies();
-    new MutationObserver(mountStickies).observe(document.body, { childList: true, subtree: true });
-    var tries = 0, iv = setInterval(function () { mountStickies(); if (++tries > 60) clearInterval(iv); }, 500);
+    function currentEntryIndex() {
+      var divs = document.querySelectorAll('div');
+      for (var i = 0; i < divs.length; i++) {
+        var m = /^(\d{2})\s*\/\s*10$/.exec(divs[i].textContent.trim());
+        if (m) return parseInt(m[1], 10) - 1;
+      }
+      return null;
+    }
+    function mountOverlayImage() {
+      var article = document.querySelector('article');
+      if (!article) return;
+      var idx = currentEntryIndex();
+      if (idx == null || idx < 0 || idx >= STICKIES.length) return;
+      var tagsRow = article.children[2];
+      if (!tagsRow) return;
+      var holder = article.querySelector('[data-luv-overlay-img]');
+      if (!holder) {
+        holder = document.createElement('div');
+        holder.setAttribute('data-luv-overlay-img', '1');
+        holder.style.cssText = 'display:flex;justify-content:center;margin:40px 0 0;';
+        tagsRow.insertAdjacentElement('afterend', holder);
+      }
+      if (holder.dataset.idx === String(idx)) return;
+      holder.dataset.idx = String(idx);
+      holder.innerHTML = '<div style="background:#fff;padding:8px 8px 22px;border-radius:8px;transform:rotate(' + ROTATIONS[idx] + 'deg);box-shadow:0 24px 40px -16px rgba(0,0,0,.35),0 6px 14px rgba(0,0,0,.12);"><img src="assets/stickies/' + STICKIES[idx] + '.jpeg" loading="lazy" alt="" style="display:block;width:min(220px,60vw);height:min(220px,60vw);object-fit:cover;border-radius:4px;"></div>';
+    }
+    function mountAll() { mountStickies(); mountOverlayImage(); }
+    mountAll();
+    new MutationObserver(mountAll).observe(document.body, { childList: true, subtree: true });
+    var tries = 0, iv = setInterval(function () { mountAll(); if (++tries > 120) clearInterval(iv); }, 400);
   })();
   </script>
 </body>
